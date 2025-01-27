@@ -1,9 +1,10 @@
 package one.wabbit.random
 
-import org.junit.Assert
-import org.junit.Test
-import org.junit.Assert.assertEquals
+
 import java.util.*
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class SplittableImmutableRandomTests {
   @Test
@@ -55,7 +56,7 @@ class SplittableImmutableRandomTests {
       for (j in 0..1000) {
         val p = sp.next64(b)
         sp = p.second
-        Assert.assertTrue(p.first <= b)
+        assertTrue(p.first <= b)
       }
     }
   }
@@ -72,8 +73,8 @@ class SplittableImmutableRandomTests {
       for (j in 0..1000) {
         val p = sp.next64(b)
         sp = p.second
-        if (b >= 0) Assert.assertTrue(p.first <= b)
-        else Assert.assertTrue(p.first >= 0 || p.first <= b)
+        if (b >= 0) assertTrue(p.first <= b)
+        else assertTrue(p.first >= 0 || p.first <= b)
       }
     }
   }
@@ -90,8 +91,8 @@ class SplittableImmutableRandomTests {
       for (j in 0..1000) {
         val p = sp.next64(b)
         sp = p.second
-        if (b >= 0) Assert.assertTrue(p.first <= b)
-        else Assert.assertTrue(p.first >= 0 || p.first <= b)
+        if (b >= 0) assertTrue(p.first <= b)
+        else assertTrue(p.first >= 0 || p.first <= b)
       }
     }
   }
