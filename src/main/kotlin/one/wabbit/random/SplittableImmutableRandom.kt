@@ -80,6 +80,24 @@ class SplittableImmutableRandom @JvmOverloads constructor(
         )
     }
 
+    fun asMutable(): Mutable {
+        return Mutable(seed, gamma)
+    }
+
+    class Mutable(var seed: Long, var gamma: Long) {
+        fun next64(): Long {
+            val s = seed + gamma
+            seed = s
+            return mix64(s)
+        }
+
+        fun next32(): Int {
+            val s = seed + gamma
+            seed = s
+            return mix32(s)
+        }
+    }
+
     companion object {
         fun seed(array: ByteArray): SplittableImmutableRandom {
             val bb = ByteBuffer.wrap(array)
