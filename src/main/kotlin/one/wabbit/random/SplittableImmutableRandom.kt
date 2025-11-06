@@ -3,18 +3,18 @@ package one.wabbit.random
 import java.nio.ByteBuffer
 
 /**
- * An immutable splittable random number generator that provides deterministic randomization
- * with the ability to fork into independent streams.
+ * An immutable splittable random number generator that provides deterministic randomization with
+ * the ability to fork into independent streams.
  *
  * @property seed The current state of the random number generator
  * @property gamma A parameter that determines the sequence of random numbers
  */
-class SplittableImmutableRandom @JvmOverloads constructor(
-    val seed: Long,
-    val gamma: Long = GOLDEN_GAMMA
-) {
+class SplittableImmutableRandom
+@JvmOverloads
+constructor(val seed: Long, val gamma: Long = GOLDEN_GAMMA) {
     /**
      * Generates the next 64-bit random number.
+     *
      * @return Pair of the random number and the next state
      */
     fun next64(): Pair<Long, SplittableImmutableRandom> {
@@ -28,10 +28,7 @@ class SplittableImmutableRandom @JvmOverloads constructor(
         val bound = max + 1
         return if (max and max + 1 == 0L) {
             // If bounded by a power of two.
-            Pair(
-                s and max,
-                SplittableImmutableRandom(s, gamma)
-            )
+            Pair(s and max, SplittableImmutableRandom(s, gamma))
         } else if (max > 0) {
             val max1 = Long.MAX_VALUE / bound * bound
             var r = s ushr 1
@@ -67,22 +64,16 @@ class SplittableImmutableRandom @JvmOverloads constructor(
         val r1 = mix64(s)
         s += gamma
         val r2 = mixGamma(s)
-        return Pair(
-            SplittableImmutableRandom(s, gamma),
-            SplittableImmutableRandom(r1, r2)
-        )
+        return Pair(SplittableImmutableRandom(s, gamma), SplittableImmutableRandom(r1, r2))
     }
 
-    fun join(that: SplittableImmutableRandom): SplittableImmutableRandom {
-        return SplittableImmutableRandom(
+    fun join(that: SplittableImmutableRandom): SplittableImmutableRandom =
+        SplittableImmutableRandom(
             mix64(seed) xor mix64(that.seed),
-            mixGamma(mix64(gamma) xor mix64(that.gamma))
+            mixGamma(mix64(gamma) xor mix64(that.gamma)),
         )
-    }
 
-    fun asMutable(): Mutable {
-        return Mutable(seed, gamma)
-    }
+    fun asMutable(): Mutable = Mutable(seed, gamma)
 
     class Mutable(var seed: Long, var gamma: Long) {
         fun next64(): Long {
@@ -129,9 +120,7 @@ class SplittableImmutableRandom @JvmOverloads constructor(
         private const val E = -0xae502812aa7333L
         private const val F = -0x3b314601e57a13adL
 
-        /**
-         * Computes Stafford variant 13 of 64bit mix function.
-         */
+        /** Computes Stafford variant 13 of 64bit mix function. */
         private fun mix64(z0: Long): Long {
             var z = z0
             z = (z xor (z ushr 30)) * A
@@ -139,18 +128,14 @@ class SplittableImmutableRandom @JvmOverloads constructor(
             return z xor (z ushr 31)
         }
 
-        /**
-         * Returns the 32 high bits of Stafford variant 4 mix64 function as int.
-         */
+        /** Returns the 32 high bits of Stafford variant 4 mix64 function as int. */
         private fun mix32(z0: Long): Int {
             var z = z0
             z = (z xor (z ushr 33)) * C
             return ((z xor (z ushr 28)) * D ushr 32).toInt()
         }
 
-        /**
-         * Returns the gamma value to use for a new split instance.
-         */
+        /** Returns the gamma value to use for a new split instance. */
         private fun mixGamma(z0: Long): Long {
             // MurmurHash3 mix constants
             var z = z0
