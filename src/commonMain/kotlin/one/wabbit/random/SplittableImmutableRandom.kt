@@ -1,21 +1,19 @@
 package one.wabbit.random
 
-import java.nio.ByteBuffer
-
 /**
  * An immutable splittable random number generator that provides deterministic randomization with
  * the ability to fork into independent streams.
  *
- * @property seed The current state of the random number generator
- * @property gamma A parameter that determines the sequence of random numbers
+ * @property seed The current state of the random number generator.
+ * @property gamma A parameter that determines the sequence of random numbers.
  */
-class SplittableImmutableRandom
-@JvmOverloads
-constructor(val seed: Long, val gamma: Long = GOLDEN_GAMMA) {
+class SplittableImmutableRandom(val seed: Long, val gamma: Long = GOLDEN_GAMMA) {
+    constructor(seed: Long) : this(seed, GOLDEN_GAMMA)
+
     /**
      * Generates the next 64-bit random number.
      *
-     * @return Pair of the random number and the next state
+     * @return Pair of the random number and the next state.
      */
     fun next64(): Pair<Long, SplittableImmutableRandom> {
         val s = seed + gamma
@@ -26,8 +24,7 @@ constructor(val seed: Long, val gamma: Long = GOLDEN_GAMMA) {
         var s = seed + gamma
         s = mix64(s)
         val bound = max + 1
-        return if (max and max + 1 == 0L) {
-            // If bounded by a power of two.
+        return if (max and (max + 1) == 0L) {
             Pair(s and max, SplittableImmutableRandom(s, gamma))
         } else if (max > 0) {
             val max1 = Long.MAX_VALUE / bound * bound
@@ -37,7 +34,7 @@ constructor(val seed: Long, val gamma: Long = GOLDEN_GAMMA) {
                     r = mix64(r)
                     continue
                 }
-                r = r % bound
+                r %= bound
                 break
             }
             Pair(r, SplittableImmutableRandom(s, gamma))
@@ -91,25 +88,46 @@ constructor(val seed: Long, val gamma: Long = GOLDEN_GAMMA) {
 
     companion object {
         fun seed(array: ByteArray): SplittableImmutableRandom {
-            val bb = ByteBuffer.wrap(array)
-            var h: Long = 0
+            var h = 0L
             var i = 0
             while (i < array.size) {
                 if (i + 8 <= array.size) {
-                    h = h xor mix64(bb.getLong(i))
+                    h = h xor mix64(readLongBigEndian(array, i))
                     i += 8
                 } else if (i + 4 <= array.size) {
-                    h = h xor mix64(bb.getInt(i).toLong())
+                    h = h xor mix64(readIntBigEndian(array, i).toLong())
                     i += 4
                 } else if (i + 2 <= array.size) {
-                    h = h xor mix64(bb.getShort(i).toLong())
+                    h = h xor mix64(readShortBigEndian(array, i).toLong())
                     i += 2
                 } else {
-                    h = h xor mix64(bb[i].toLong())
+                    h = h xor mix64(array[i].toLong())
                     i += 1
                 }
             }
             return SplittableImmutableRandom(h, mixGamma(h + GOLDEN_GAMMA))
+        }
+
+        private fun readLongBigEndian(array: ByteArray, offset: Int): Long {
+            var result = 0L
+            for (i in 0 until 8) {
+                result = (result shl 8) or (array[offset + i].toLong() and 0xffL)
+            }
+            return result
+        }
+
+        private fun readIntBigEndian(array: ByteArray, offset: Int): Int {
+            var result = 0
+            for (i in 0 until 4) {
+                result = (result shl 8) or (array[offset + i].toInt() and 0xff)
+            }
+            return result
+        }
+
+        private fun readShortBigEndian(array: ByteArray, offset: Int): Short {
+            val result =
+                ((array[offset].toInt() and 0xff) shl 8) or (array[offset + 1].toInt() and 0xff)
+            return result.toShort()
         }
 
         private const val GOLDEN_GAMMA = -0x61c8864680b583ebL
@@ -120,7 +138,7 @@ constructor(val seed: Long, val gamma: Long = GOLDEN_GAMMA) {
         private const val E = -0xae502812aa7333L
         private const val F = -0x3b314601e57a13adL
 
-        /** Computes Stafford variant 13 of 64bit mix function. */
+        /** Computes Stafford variant 13 of 64-bit mix function. */
         private fun mix64(z0: Long): Long {
             var z = z0
             z = (z xor (z ushr 30)) * A
@@ -137,14 +155,11 @@ constructor(val seed: Long, val gamma: Long = GOLDEN_GAMMA) {
 
         /** Returns the gamma value to use for a new split instance. */
         private fun mixGamma(z0: Long): Long {
-            // MurmurHash3 mix constants
             var z = z0
             z = (z xor (z ushr 33)) * E
             z = (z xor (z ushr 33)) * F
-            // force to be odd
             z = z xor (z ushr 33) or 1L
-            // ensure enough transitions
-            val n = java.lang.Long.bitCount(z xor (z ushr 1))
+            val n = (z xor (z ushr 1)).countOneBits()
             return if (n < 24) z xor -0x5555555555555556L else z
         }
     }
