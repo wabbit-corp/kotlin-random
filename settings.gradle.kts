@@ -31,6 +31,7 @@ pluginManagement {
         id("org.jetbrains.intellij") version "1.17.2"
         id("io.papermc.paperweight.userdev") version "1.7.2"
         id("net.minecrell.plugin-yml.bukkit") version "0.6.0"
+
     }
 }
 

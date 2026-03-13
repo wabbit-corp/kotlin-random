@@ -18,6 +18,8 @@ plugins {
 
     kotlin("multiplatform")
 
+    kotlin("plugin.serialization")
+
     id("org.jetbrains.dokka")
     id("org.jetbrains.kotlinx.kover")
     id("maven-publish")
@@ -102,9 +104,19 @@ kotlin {
     }
 
     sourceSets {
+        val commonMain by getting {
+            dependencies {
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.9.0")
+
+            }
+
+        }
+
         val commonTest by getting {
             dependencies {
                 implementation("org.jetbrains.kotlin:kotlin-test:2.3.10")
+
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
 
             }
 
