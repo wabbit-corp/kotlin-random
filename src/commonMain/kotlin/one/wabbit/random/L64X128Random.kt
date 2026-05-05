@@ -1,8 +1,10 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 package one.wabbit.random
 
+import kotlin.random.Random
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
-import kotlin.random.Random
 
 /**
  * Mutable LXM generator with the same stepping, seeding, split, and core primitive-generation
@@ -16,9 +18,11 @@ class L64X128Random private constructor(initial: L64X128State) : Random() {
     /** Current 64-bit LCG state. */
     var s: Long = initial.s
         private set
+
     /** First 64-bit xorshift state word. */
     var x0: Long = initial.x0
         private set
+
     /** Second 64-bit xorshift state word. */
     var x1: Long = initial.x1
         private set
@@ -30,9 +34,7 @@ class L64X128Random private constructor(initial: L64X128State) : Random() {
      */
     constructor(a: Long, s: Long, x0: Long, x1: Long) : this(normalizeState(a, s, x0, x1))
 
-    /**
-     * Creates a mutable generator by expanding [seed] into the full L64X128 state.
-     */
+    /** Creates a mutable generator by expanding [seed] into the full L64X128 state. */
     constructor(seed: Long) : this(longSeedState(seed))
 
     /**
@@ -99,9 +101,7 @@ class L64X128Random private constructor(initial: L64X128State) : Random() {
     override fun nextBytes(array: ByteArray, fromIndex: Int, toIndex: Int): ByteArray =
         fillBytesFromLongs(array, fromIndex, toIndex, ::next64)
 
-    /**
-     * Returns the next 64 random bits and advances this generator by one L64X128 step.
-     */
+    /** Returns the next 64 random bits and advances this generator by one L64X128 step. */
     fun next64(): Long {
         val result = mixLea64(s + x0)
         val nextS = LCG_MULTIPLIER * s + a
@@ -141,9 +141,7 @@ class L64X128Random private constructor(initial: L64X128State) : Random() {
         }
     }
 
-    /**
-     * Returns the high 32 bits of the next 64-bit output and advances this generator.
-     */
+    /** Returns the high 32 bits of the next 64-bit output and advances this generator. */
     fun next32(): Int = (next64() ushr 32).toInt()
 
     /**
@@ -171,31 +169,22 @@ class L64X128Random private constructor(initial: L64X128State) : Random() {
         }
     }
 
-    /**
-     * Creates a child generator using the next output word as the fork brine.
-     */
+    /** Creates a child generator using the next output word as the fork brine. */
     fun fork(): L64X128Random = fork(next64())
 
-    /**
-     * Creates a child generator using [brine] plus three sampled words from this generator.
-     */
+    /** Creates a child generator using [brine] plus three sampled words from this generator. */
     fun fork(brine: Long): L64X128Random = L64X128Random(brine shl 1, next64(), next64(), next64())
 
-    /**
-     * Captures this mutable generator as a serializable immutable snapshot.
-     */
+    /** Captures this mutable generator as a serializable immutable snapshot. */
     fun asImmutable(): Immutable = Immutable(L64X128State(a, s, x0, x1))
 
     private fun currentState(): L64X128State = L64X128State(a, s, x0, x1)
 
-    /**
-     * Compares generator state, not object identity.
-     */
-    override fun equals(other: Any?): Boolean = other is L64X128Random && currentState() == other.currentState()
+    /** Compares generator state, not object identity. */
+    override fun equals(other: Any?): Boolean =
+        other is L64X128Random && currentState() == other.currentState()
 
-    /**
-     * Returns a hash code derived from the current generator state.
-     */
+    /** Returns a hash code derived from the current generator state. */
     override fun hashCode(): Int = currentState().hashCode()
 
     /**
@@ -210,39 +199,28 @@ class L64X128Random private constructor(initial: L64X128State) : Random() {
      * @property x1 second 64-bit xorshift state word.
      */
     @Serializable
-    class Immutable internal constructor(
+    class Immutable
+    internal constructor(
         val a: Long,
         val s: Long,
         val x0: Long,
         val x1: Long,
         @Transient private val unused: Int = 0,
     ) {
-        internal constructor(initial: L64X128State) : this(
-            a = initial.a,
-            s = initial.s,
-            x0 = initial.x0,
-            x1 = initial.x1,
-            unused = 0,
-        )
+        internal constructor(
+            initial: L64X128State
+        ) : this(a = initial.a, s = initial.s, x0 = initial.x0, x1 = initial.x1, unused = 0)
 
-        /**
-         * Creates an immutable generator from explicit state words.
-         */
+        /** Creates an immutable generator from explicit state words. */
         constructor(a: Long, s: Long, x0: Long, x1: Long) : this(normalizeState(a, s, x0, x1))
 
-        /**
-         * Creates an immutable generator by expanding [seed] into the full L64X128 state.
-         */
+        /** Creates an immutable generator by expanding [seed] into the full L64X128 state. */
         constructor(seed: Long) : this(longSeedState(seed))
 
-        /**
-         * Creates an immutable generator from up to 32 seed bytes.
-         */
+        /** Creates an immutable generator from up to 32 seed bytes. */
         constructor(seed: ByteArray) : this(byteSeedState(seed))
 
-        /**
-         * Returns the next 64 random bits and the advanced immutable generator state.
-         */
+        /** Returns the next 64 random bits and the advanced immutable generator state. */
         fun next64(): RandomResult<Immutable, Long> {
             val result = mixLea64(s + x0)
             return RandomResult(result, Immutable(advancedState(a, s, x0, x1)))
@@ -275,9 +253,7 @@ class L64X128Random private constructor(initial: L64X128State) : Random() {
             }
         }
 
-        /**
-         * Returns the high 32 bits of the next 64-bit output and the advanced state.
-         */
+        /** Returns the high 32 bits of the next 64-bit output and the advanced state. */
         fun next32(): RandomResult<Immutable, Int> {
             val step = next64()
             return RandomResult((step.value ushr 32).toInt(), step.generator)
@@ -310,17 +286,13 @@ class L64X128Random private constructor(initial: L64X128State) : Random() {
             }
         }
 
-        /**
-         * Creates a child generator using the next output word as brine.
-         */
+        /** Creates a child generator using the next output word as brine. */
         fun fork(): RandomResult<Immutable, Immutable> {
             val brineStep = next64()
             return brineStep.generator.fork(brineStep.value)
         }
 
-        /**
-         * Creates a child generator using [brine] and returns the advanced parent state.
-         */
+        /** Creates a child generator using [brine] and returns the advanced parent state. */
         fun fork(brine: Long): RandomResult<Immutable, Immutable> {
             val sStep = next64()
             val x0Step = sStep.generator.next64()
@@ -331,37 +303,25 @@ class L64X128Random private constructor(initial: L64X128State) : Random() {
             )
         }
 
-        /**
-         * Converts this immutable snapshot to a mutable generator with the same state.
-         */
+        /** Converts this immutable snapshot to a mutable generator with the same state. */
         fun asMutable(): L64X128Random = L64X128Random(L64X128State(a, s, x0, x1))
 
         private fun state(): L64X128State = L64X128State(a, s, x0, x1)
 
-        /**
-         * Compares immutable generator state, not object identity.
-         */
+        /** Compares immutable generator state, not object identity. */
         override fun equals(other: Any?): Boolean = other is Immutable && state() == other.state()
 
-        /**
-         * Returns a hash code derived from the immutable state.
-         */
+        /** Returns a hash code derived from the immutable state. */
         override fun hashCode(): Int = state().hashCode()
 
-        /**
-         * Constructors for immutable L64X128 generators.
-         */
+        /** Constructors for immutable L64X128 generators. */
         companion object {
-            /**
-             * Creates an immutable generator from up to 32 seed bytes.
-             */
+            /** Creates an immutable generator from up to 32 seed bytes. */
             fun seed(bytes: ByteArray): Immutable = Immutable(bytes)
         }
     }
 
-    /**
-     * Constructors for mutable L64X128 generators.
-     */
+    /** Constructors for mutable L64X128 generators. */
     companion object {
         private const val BAD_BOUND = "bound must be positive"
         private const val BAD_RANGE = "from must be less than until"
@@ -375,9 +335,7 @@ class L64X128Random private constructor(initial: L64X128State) : Random() {
         private const val STAFFORD_MIX1 = -4658895280553007687L
         private const val STAFFORD_MIX2 = -7723592293110705685L
 
-        /**
-         * Creates a mutable generator from up to 32 seed bytes.
-         */
+        /** Creates a mutable generator from up to 32 seed bytes. */
         fun seed(bytes: ByteArray): L64X128Random = L64X128Random(bytes)
 
         private fun longSeedState(seed: Long): L64X128State {
@@ -472,13 +430,7 @@ class L64X128Random private constructor(initial: L64X128State) : Random() {
             mixed = (mixed xor (mixed ushr 32)) * LEA_MULTIPLIER
             return mixed xor (mixed ushr 32)
         }
-
     }
 }
 
-internal data class L64X128State(
-    val a: Long,
-    val s: Long,
-    val x0: Long,
-    val x1: Long,
-)
+internal data class L64X128State(val a: Long, val s: Long, val x0: Long, val x1: Long)

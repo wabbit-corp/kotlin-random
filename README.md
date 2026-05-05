@@ -1,12 +1,19 @@
 # kotlin-random
 
+![](./.meta/github-project-banner.png)
+
+<p align=center>
+    <img src="https://img.shields.io/maven-central/v/one.wabbit/kotlin-random" alt="Maven Central">
+    <img src="https://img.shields.io/badge/Kotlin-Multiplatform-7F52FF" alt="Kotlin Multiplatform">
+</p>
+
 `kotlin-random` is a Kotlin Multiplatform library of deterministic pseudo-random generators with
 both mutable `kotlin.random.Random` implementations and serializable immutable state snapshots.
 
 It is designed for reproducible simulation, testing, procedural generation, and cross-platform
 streams where the exact generator state matters. It is not a cryptographic random-number library.
 
-## Installation
+## 🚀 Installation
 
 ```kotlin
 repositories {
@@ -18,7 +25,7 @@ dependencies {
 }
 ```
 
-## Quick Start
+## 🚀 Usage
 
 ```kotlin
 import one.wabbit.random.L64X128Random

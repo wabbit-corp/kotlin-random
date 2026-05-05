@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-Wabbit-Public-Test-License-1.1
+
 package one.wabbit.random
 
 import kotlin.test.Test
@@ -127,15 +129,23 @@ class PhiloxRandomSpec {
 
         val immutableAdvancedUnsigned = immutableUnsigned.advance(2uL)
         val immutableAdvancedSigned = immutableSigned.advance(2L)
-        assertContentEquals(immutableAdvancedUnsigned.nextBlock().value, immutableAdvancedSigned.nextBlock().value)
+        assertContentEquals(
+            immutableAdvancedUnsigned.nextBlock().value,
+            immutableAdvancedSigned.nextBlock().value,
+        )
 
         val jumpedUnsigned = PhiloxRandom(key0 = 0L, key1 = 0L, counter0 = 1L).jumped(3uL)
         val jumpedSigned = PhiloxRandom(key0 = 0L, key1 = 0L, counter0 = 1L).jumped(3L)
         assertContentEquals(jumpedUnsigned.nextBlock(), jumpedSigned.nextBlock())
 
-        val immutableJumpedUnsigned = PhiloxRandom.Immutable(key0 = 0L, key1 = 0L, counter0 = 1L).jumped(3uL)
-        val immutableJumpedSigned = PhiloxRandom.Immutable(key0 = 0L, key1 = 0L, counter0 = 1L).jumped(3L)
-        assertContentEquals(immutableJumpedUnsigned.nextBlock().value, immutableJumpedSigned.nextBlock().value)
+        val immutableJumpedUnsigned =
+            PhiloxRandom.Immutable(key0 = 0L, key1 = 0L, counter0 = 1L).jumped(3uL)
+        val immutableJumpedSigned =
+            PhiloxRandom.Immutable(key0 = 0L, key1 = 0L, counter0 = 1L).jumped(3L)
+        assertContentEquals(
+            immutableJumpedUnsigned.nextBlock().value,
+            immutableJumpedSigned.nextBlock().value,
+        )
     }
 
     @Test
@@ -146,9 +156,7 @@ class PhiloxRandomSpec {
         assertFailsWith<IllegalArgumentException> {
             PhiloxRandom.Immutable(key0 = 0L, key1 = 0L).advance(-1L)
         }
-        assertFailsWith<IllegalArgumentException> {
-            PhiloxRandom(key0 = 0L, key1 = 0L).jumped(-1L)
-        }
+        assertFailsWith<IllegalArgumentException> { PhiloxRandom(key0 = 0L, key1 = 0L).jumped(-1L) }
         assertFailsWith<IllegalArgumentException> {
             PhiloxRandom.Immutable(key0 = 0L, key1 = 0L).jumped(-1L)
         }

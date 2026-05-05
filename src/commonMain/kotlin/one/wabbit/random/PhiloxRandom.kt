@@ -1,23 +1,24 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 package one.wabbit.random
 
-import kotlinx.serialization.Serializable
 import kotlin.random.Random
+import kotlinx.serialization.Serializable
 
 private const val PHILOX_WORDS_PER_BLOCK = 4
 
 /**
  * Mutable Philox 4x64 generator with a consistent exact-counter API.
  *
- * The stored counter is the exact 256-bit counter that will be hashed next, so
- * `PhiloxRandom(key0 = 0, key1 = 0).nextBlock()` and `PhiloxRandom.block(0, 0, 0, 0, 0, 0)`
- * refer to the same block. NumPy's exposed `Philox` state instead stores the last-used counter,
- * so `numpy.random.Philox(counter=[0, 0, 0, 0], key=[0, 0]).random_raw(4)` corresponds to this
- * library with `counter0 = 1`. `next32()` follows NumPy's low-32/high-32 caching behavior, while
- * `next64()` stays aligned to 64-bit words and discards any cached 32-bit half. Full restore
- * constructors that include buffered words and cached 32-bit state are internal; use
- * `asImmutable()` / `asMutable()` to round-trip those opaque snapshots. The higher-level
- * `Random` primitives follow the same alignment rules, so `nextDouble()` and `nextBytes(...)`
- * are also 64-bit aligned.
+ * The stored counter is the exact 256-bit counter that will be hashed next, so `PhiloxRandom(key0 =
+ * 0, key1 = 0).nextBlock()` and `PhiloxRandom.block(0, 0, 0, 0, 0, 0)` refer to the same block.
+ * NumPy's exposed `Philox` state instead stores the last-used counter, so
+ * `numpy.random.Philox(counter=[0, 0, 0, 0], key=[0, 0]).random_raw(4)` corresponds to this library
+ * with `counter0 = 1`. `next32()` follows NumPy's low-32/high-32 caching behavior, while `next64()`
+ * stays aligned to 64-bit words and discards any cached 32-bit half. Full restore constructors that
+ * include buffered words and cached 32-bit state are internal; use `asImmutable()` / `asMutable()`
+ * to round-trip those opaque snapshots. The higher-level `Random` primitives follow the same
+ * alignment rules, so `nextDouble()` and `nextBytes(...)` are also 64-bit aligned.
  */
 class PhiloxRandom private constructor(initial: PhiloxState) : Random() {
     /** First 64-bit Philox key word. */
@@ -27,12 +28,15 @@ class PhiloxRandom private constructor(initial: PhiloxState) : Random() {
     /** Low 64-bit word of the exact 256-bit counter. */
     var counter0: Long = initial.counter0
         private set
+
     /** Second 64-bit word of the exact 256-bit counter. */
     var counter1: Long = initial.counter1
         private set
+
     /** Third 64-bit word of the exact 256-bit counter. */
     var counter2: Long = initial.counter2
         private set
+
     /** High 64-bit word of the exact 256-bit counter. */
     var counter3: Long = initial.counter3
         private set
@@ -45,9 +49,7 @@ class PhiloxRandom private constructor(initial: PhiloxState) : Random() {
     private var hasUInt32: Boolean = initial.hasUInt32
     private var uinteger: Int = initial.uinteger
 
-    /**
-     * Creates a mutable Philox generator from a key and exact 256-bit counter.
-     */
+    /** Creates a mutable Philox generator from a key and exact 256-bit counter. */
     constructor(
         key0: Long,
         key1: Long,
@@ -64,8 +66,8 @@ class PhiloxRandom private constructor(initial: PhiloxState) : Random() {
                 counter1 = counter1,
                 counter2 = counter2,
                 counter3 = counter3,
-            ),
-        ),
+            )
+        )
     )
 
     internal constructor(
@@ -98,8 +100,8 @@ class PhiloxRandom private constructor(initial: PhiloxState) : Random() {
                 blockIndex = blockIndex,
                 hasUInt32 = hasUInt32,
                 uinteger = uinteger,
-            ),
-        ),
+            )
+        )
     )
 
     override fun nextBits(bitCount: Int): Int = randomBitsFromInt(next32(), bitCount)
@@ -120,8 +122,8 @@ class PhiloxRandom private constructor(initial: PhiloxState) : Random() {
     /**
      * Returns the next 64-bit word and advances the buffered Philox stream.
      *
-     * If a 32-bit half-word was cached by [next32], it is discarded to keep 64-bit consumers aligned
-     * to whole Philox words.
+     * If a 32-bit half-word was cached by [next32], it is discarded to keep 64-bit consumers
+     * aligned to whole Philox words.
      */
     fun next64(): Long {
         clearCachedUInt32()
@@ -129,15 +131,12 @@ class PhiloxRandom private constructor(initial: PhiloxState) : Random() {
             refill()
         }
 
-        val value =
-            bufferedWordAt(blockIndex)
+        val value = bufferedWordAt(blockIndex)
         blockIndex += 1
         return value
     }
 
-    /**
-     * Returns the next 32-bit value using NumPy-compatible low-half/high-half caching.
-     */
+    /** Returns the next 32-bit value using NumPy-compatible low-half/high-half caching. */
     fun next32(): Int {
         if (hasUInt32) {
             hasUInt32 = false
@@ -158,7 +157,8 @@ class PhiloxRandom private constructor(initial: PhiloxState) : Random() {
     fun nextBlock(): LongArray {
         val block = block(counter0, counter1, counter2, counter3, key0, key1)
         clearBufferedState()
-        incrementCounterWords(counter0, counter1, counter2, counter3) { next0, next1, next2, next3 ->
+        incrementCounterWords(counter0, counter1, counter2, counter3) { next0, next1, next2, next3
+            ->
             counter0 = next0
             counter1 = next1
             counter2 = next2
@@ -194,14 +194,10 @@ class PhiloxRandom private constructor(initial: PhiloxState) : Random() {
      * Returns a generator with its counter advanced by [jumps] * 2^128 blocks. Buffered output is
      * discarded in the returned state.
      */
-    /**
-     * Returns a generator with its counter advanced by one jump of `2^128` blocks.
-     */
+    /** Returns a generator with its counter advanced by one jump of `2^128` blocks. */
     fun jumped(): PhiloxRandom = jumped(1uL)
 
-    /**
-     * Returns a generator with its counter advanced by [jumps] * `2^128` blocks.
-     */
+    /** Returns a generator with its counter advanced by [jumps] * `2^128` blocks. */
     fun jumped(jumps: ULong): PhiloxRandom =
         PhiloxRandom(
             addToJumpWord(
@@ -212,7 +208,7 @@ class PhiloxRandom private constructor(initial: PhiloxState) : Random() {
                 counter2 = counter2,
                 counter3 = counter3,
                 jumps = jumps,
-            ),
+            )
         )
 
     /**
@@ -225,9 +221,7 @@ class PhiloxRandom private constructor(initial: PhiloxState) : Random() {
         return jumped(jumps.toULong())
     }
 
-    /**
-     * Captures this mutable generator as a serializable immutable snapshot.
-     */
+    /** Captures this mutable generator as a serializable immutable snapshot. */
     fun asImmutable(): Immutable =
         Immutable(
             key0 = key0,
@@ -262,25 +256,24 @@ class PhiloxRandom private constructor(initial: PhiloxState) : Random() {
             uinteger = uinteger,
         )
 
-    /**
-     * Compares full generator state, including buffered words and cached 32-bit half.
-     */
-    override fun equals(other: Any?): Boolean = other is PhiloxRandom && currentState() == other.currentState()
+    /** Compares full generator state, including buffered words and cached 32-bit half. */
+    override fun equals(other: Any?): Boolean =
+        other is PhiloxRandom && currentState() == other.currentState()
 
-    /**
-     * Returns a hash code derived from the full generator state.
-     */
+    /** Returns a hash code derived from the full generator state. */
     override fun hashCode(): Int = currentState().hashCode()
 
     private fun refill() {
-        blockWords(counter0, counter1, counter2, counter3, key0, key1) { word0, word1, word2, word3 ->
+        blockWords(counter0, counter1, counter2, counter3, key0, key1) { word0, word1, word2, word3
+            ->
             block0 = word0
             block1 = word1
             block2 = word2
             block3 = word3
         }
         blockIndex = 0
-        incrementCounterWords(counter0, counter1, counter2, counter3) { next0, next1, next2, next3 ->
+        incrementCounterWords(counter0, counter1, counter2, counter3) { next0, next1, next2, next3
+            ->
             counter0 = next0
             counter1 = next1
             counter2 = next2
@@ -293,8 +286,7 @@ class PhiloxRandom private constructor(initial: PhiloxState) : Random() {
             refill()
         }
 
-        val value =
-            bufferedWordAt(blockIndex)
+        val value = bufferedWordAt(blockIndex)
         blockIndex += 1
         return value
     }
@@ -316,8 +308,8 @@ class PhiloxRandom private constructor(initial: PhiloxState) : Random() {
     /**
      * Serializable immutable Philox generator state.
      *
-     * The buffered fields are part of the state so an immutable snapshot round-trips exactly through
-     * [asMutable], even after mixed 32-bit and 64-bit consumption.
+     * The buffered fields are part of the state so an immutable snapshot round-trips exactly
+     * through [asMutable], even after mixed 32-bit and 64-bit consumption.
      *
      * @property key0 first 64-bit Philox key word.
      * @property key1 second 64-bit Philox key word.
@@ -334,7 +326,8 @@ class PhiloxRandom private constructor(initial: PhiloxState) : Random() {
      * @property uinteger cached high 32-bit half used by [next32].
      */
     @Serializable
-    class Immutable internal constructor(
+    class Immutable
+    internal constructor(
         val key0: Long,
         val key1: Long,
         val counter0: Long,
@@ -353,9 +346,7 @@ class PhiloxRandom private constructor(initial: PhiloxState) : Random() {
             validateBufferedState(blockIndex, hasUInt32)
         }
 
-        /**
-         * Creates an immutable Philox generator from a key and exact 256-bit counter.
-         */
+        /** Creates an immutable Philox generator from a key and exact 256-bit counter. */
         constructor(
             key0: Long,
             key1: Long,
@@ -379,7 +370,9 @@ class PhiloxRandom private constructor(initial: PhiloxState) : Random() {
             uinteger = 0,
         )
 
-        internal constructor(initial: PhiloxState) : this(
+        internal constructor(
+            initial: PhiloxState
+        ) : this(
             key0 = initial.key0,
             key1 = initial.key1,
             counter0 = initial.counter0,
@@ -417,10 +410,7 @@ class PhiloxRandom private constructor(initial: PhiloxState) : Random() {
                         aligned.block2,
                         aligned.block3,
                     )
-                return RandomResult(
-                    value,
-                    aligned.copy(blockIndex = aligned.blockIndex + 1),
-                )
+                return RandomResult(value, aligned.copy(blockIndex = aligned.blockIndex + 1))
             }
 
             return blockWords(
@@ -431,12 +421,12 @@ class PhiloxRandom private constructor(initial: PhiloxState) : Random() {
                 aligned.key0,
                 aligned.key1,
             ) { word0, word1, word2, word3 ->
-                incrementCounterWords(aligned.counter0, aligned.counter1, aligned.counter2, aligned.counter3) {
-                        next0,
-                        next1,
-                        next2,
-                        next3,
-                    ->
+                incrementCounterWords(
+                    aligned.counter0,
+                    aligned.counter1,
+                    aligned.counter2,
+                    aligned.counter3,
+                ) { next0, next1, next2, next3 ->
                     RandomResult(
                         word0,
                         aligned.copy(
@@ -455,24 +445,16 @@ class PhiloxRandom private constructor(initial: PhiloxState) : Random() {
             }
         }
 
-        /**
-         * Returns the next 32-bit value and the advanced immutable state.
-         */
+        /** Returns the next 32-bit value and the advanced immutable state. */
         fun next32(): RandomResult<Immutable, Int> {
             if (hasUInt32) {
-                return RandomResult(
-                    uinteger,
-                    copy(hasUInt32 = false, uinteger = 0),
-                )
+                return RandomResult(uinteger, copy(hasUInt32 = false, uinteger = 0))
             }
 
             val step = next64()
             return RandomResult(
                 step.value.toInt(),
-                step.generator.copy(
-                    hasUInt32 = true,
-                    uinteger = (step.value ushr 32).toInt(),
-                ),
+                step.generator.copy(hasUInt32 = true, uinteger = (step.value ushr 32).toInt()),
             )
         }
 
@@ -481,8 +463,16 @@ class PhiloxRandom private constructor(initial: PhiloxState) : Random() {
          * discarded in the returned continuation state.
          */
         fun nextBlock(): RandomResult<Immutable, LongArray> {
-            return blockWords(counter0, counter1, counter2, counter3, key0, key1) { word0, word1, word2, word3 ->
-                incrementCounterWords(counter0, counter1, counter2, counter3) { next0, next1, next2, next3 ->
+            return blockWords(counter0, counter1, counter2, counter3, key0, key1) {
+                word0,
+                word1,
+                word2,
+                word3 ->
+                incrementCounterWords(counter0, counter1, counter2, counter3) {
+                    next0,
+                    next1,
+                    next2,
+                    next3 ->
                     RandomResult(
                         longArrayOf(word0, word1, word2, word3),
                         copy(
@@ -508,21 +498,22 @@ class PhiloxRandom private constructor(initial: PhiloxState) : Random() {
          * output.
          */
         fun advance(delta: ULong): Immutable =
-            addToLowWord(counter0, counter1, counter2, counter3, delta) { next0, next1, next2, next3 ->
-                    copy(
-                        counter0 = next0,
-                        counter1 = next1,
-                        counter2 = next2,
-                        counter3 = next3,
-                        block0 = 0L,
-                        block1 = 0L,
-                        block2 = 0L,
-                        block3 = 0L,
-                        blockIndex = WORDS_PER_BLOCK,
-                        hasUInt32 = false,
-                        uinteger = 0,
-                    )
-                }
+            addToLowWord(counter0, counter1, counter2, counter3, delta) { next0, next1, next2, next3
+                ->
+                copy(
+                    counter0 = next0,
+                    counter1 = next1,
+                    counter2 = next2,
+                    counter3 = next3,
+                    block0 = 0L,
+                    block1 = 0L,
+                    block2 = 0L,
+                    block3 = 0L,
+                    blockIndex = WORDS_PER_BLOCK,
+                    hasUInt32 = false,
+                    uinteger = 0,
+                )
+            }
 
         /**
          * Returns the state advanced by [delta] blocks with buffered output cleared.
@@ -538,14 +529,10 @@ class PhiloxRandom private constructor(initial: PhiloxState) : Random() {
          * Returns a generator with its counter advanced by [jumps] * 2^128 blocks. Buffered output
          * is discarded in the returned state.
          */
-        /**
-         * Returns the state advanced by one jump of `2^128` blocks.
-         */
+        /** Returns the state advanced by one jump of `2^128` blocks. */
         fun jumped(): Immutable = jumped(1uL)
 
-        /**
-         * Returns the state advanced by [jumps] * `2^128` blocks.
-         */
+        /** Returns the state advanced by [jumps] * `2^128` blocks. */
         fun jumped(jumps: ULong): Immutable =
             Immutable(
                 addToJumpWord(
@@ -556,7 +543,7 @@ class PhiloxRandom private constructor(initial: PhiloxState) : Random() {
                     jumps = jumps,
                     key0 = key0,
                     key1 = key1,
-                ),
+                )
             )
 
         /**
@@ -569,9 +556,7 @@ class PhiloxRandom private constructor(initial: PhiloxState) : Random() {
             return jumped(jumps.toULong())
         }
 
-        /**
-         * Converts this immutable snapshot to a mutable generator with the same full state.
-         */
+        /** Converts this immutable snapshot to a mutable generator with the same full state. */
         fun asMutable(): PhiloxRandom =
             PhiloxRandom(
                 PhiloxState(
@@ -588,7 +573,7 @@ class PhiloxRandom private constructor(initial: PhiloxState) : Random() {
                     blockIndex = blockIndex,
                     hasUInt32 = hasUInt32,
                     uinteger = uinteger,
-                ),
+                )
             )
 
         private fun state(): PhiloxState =
@@ -608,14 +593,10 @@ class PhiloxRandom private constructor(initial: PhiloxState) : Random() {
                 uinteger = uinteger,
             )
 
-        /**
-         * Compares full immutable state, including buffered words and cached 32-bit half.
-         */
+        /** Compares full immutable state, including buffered words and cached 32-bit half. */
         override fun equals(other: Any?): Boolean = other is Immutable && state() == other.state()
 
-        /**
-         * Returns a hash code derived from the full immutable state.
-         */
+        /** Returns a hash code derived from the full immutable state. */
         override fun hashCode(): Int = state().hashCode()
 
         private fun copy(
@@ -650,9 +631,7 @@ class PhiloxRandom private constructor(initial: PhiloxState) : Random() {
             )
     }
 
-    /**
-     * Raw Philox block helpers.
-     */
+    /** Raw Philox block helpers. */
     companion object {
         private const val WORDS_PER_BLOCK = PHILOX_WORDS_PER_BLOCK
         private const val ROUND_COUNT = 10
@@ -680,7 +659,11 @@ class PhiloxRandom private constructor(initial: PhiloxState) : Random() {
             key0: Long,
             key1: Long,
         ): LongArray =
-            blockWords(counter0, counter1, counter2, counter3, key0, key1) { word0, word1, word2, word3 ->
+            blockWords(counter0, counter1, counter2, counter3, key0, key1) {
+                word0,
+                word1,
+                word2,
+                word3 ->
                 longArrayOf(word0, word1, word2, word3)
             }
 
@@ -836,7 +819,8 @@ class PhiloxRandom private constructor(initial: PhiloxState) : Random() {
             }
     }
 
-    private fun bufferedWordAt(index: Int): Long = selectBufferedWord(index, block0, block1, block2, block3)
+    private fun bufferedWordAt(index: Int): Long =
+        selectBufferedWord(index, block0, block1, block2, block3)
 }
 
 internal data class PhiloxState(

@@ -1,7 +1,9 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 package one.wabbit.random
 
-import kotlinx.serialization.Serializable
 import kotlin.random.Random
+import kotlinx.serialization.Serializable
 
 /**
  * Mutable xoshiro256++ generator.
@@ -13,12 +15,15 @@ class Xoshiro256PlusPlusRandom private constructor(initial: Xoshiro256State) : R
     /** First 64-bit state word. */
     var s0: Long = initial.s0
         private set
+
     /** Second 64-bit state word. */
     var s1: Long = initial.s1
         private set
+
     /** Third 64-bit state word. */
     var s2: Long = initial.s2
         private set
+
     /** Fourth 64-bit state word. */
     var s3: Long = initial.s3
         private set
@@ -28,11 +33,14 @@ class Xoshiro256PlusPlusRandom private constructor(initial: Xoshiro256State) : R
      *
      * The all-zero state is rejected.
      */
-    constructor(s0: Long, s1: Long, s2: Long, s3: Long) : this(normalizeXoshiroState(s0, s1, s2, s3))
+    constructor(
+        s0: Long,
+        s1: Long,
+        s2: Long,
+        s3: Long,
+    ) : this(normalizeXoshiroState(s0, s1, s2, s3))
 
-    /**
-     * Creates a generator by expanding [seed] with SplitMix-style seeding.
-     */
+    /** Creates a generator by expanding [seed] with SplitMix-style seeding. */
     constructor(seed: Long) : this(seedXoshiroState(seed))
 
     override fun nextBits(bitCount: Int): Int = randomBitsFromInt(next32(), bitCount)
@@ -50,9 +58,7 @@ class Xoshiro256PlusPlusRandom private constructor(initial: Xoshiro256State) : R
     override fun nextBytes(array: ByteArray, fromIndex: Int, toIndex: Int): ByteArray =
         fillBytesFromLongs(array, fromIndex, toIndex, ::next64)
 
-    /**
-     * Returns the next 64-bit xoshiro256++ output and advances this generator.
-     */
+    /** Returns the next 64-bit xoshiro256++ output and advances this generator. */
     fun next64(): Long {
         val result = xoshiro256PlusPlusOutput(s0, s3)
         stepXoshiroState(s0, s1, s2, s3) { nextS0, nextS1, nextS2, nextS3 ->
@@ -64,28 +70,20 @@ class Xoshiro256PlusPlusRandom private constructor(initial: Xoshiro256State) : R
         return result
     }
 
-    /**
-     * Returns the high 32 bits of the next 64-bit output and advances this generator.
-     */
+    /** Returns the high 32 bits of the next 64-bit output and advances this generator. */
     fun next32(): Int = (next64() ushr 32).toInt()
 
-    /**
-     * Advances this generator by the standard xoshiro256 jump polynomial.
-     */
+    /** Advances this generator by the standard xoshiro256 jump polynomial. */
     fun jump() {
         assignState(jumpXoshiroState(s0, s1, s2, s3, XOSHIRO256_JUMP))
     }
 
-    /**
-     * Advances this generator by the standard xoshiro256 long-jump polynomial.
-     */
+    /** Advances this generator by the standard xoshiro256 long-jump polynomial. */
     fun longJump() {
         assignState(jumpXoshiroState(s0, s1, s2, s3, XOSHIRO256_LONG_JUMP))
     }
 
-    /**
-     * Captures this mutable generator as a serializable immutable snapshot.
-     */
+    /** Captures this mutable generator as a serializable immutable snapshot. */
     fun asImmutable(): Immutable = Immutable(s0, s1, s2, s3)
 
     private fun assignState(next: Xoshiro256State) {
@@ -97,15 +95,11 @@ class Xoshiro256PlusPlusRandom private constructor(initial: Xoshiro256State) : R
 
     private fun currentState(): Xoshiro256State = Xoshiro256State(s0, s1, s2, s3)
 
-    /**
-     * Compares generator state, not object identity.
-     */
+    /** Compares generator state, not object identity. */
     override fun equals(other: Any?): Boolean =
         other is Xoshiro256PlusPlusRandom && currentState() == other.currentState()
 
-    /**
-     * Returns a hash code derived from the current generator state.
-     */
+    /** Returns a hash code derived from the current generator state. */
     override fun hashCode(): Int = currentState().hashCode()
 
     /**
@@ -117,75 +111,53 @@ class Xoshiro256PlusPlusRandom private constructor(initial: Xoshiro256State) : R
      * @property s3 fourth 64-bit state word.
      */
     @Serializable
-    class Immutable(
-        val s0: Long,
-        val s1: Long,
-        val s2: Long,
-        val s3: Long,
-    ) {
+    class Immutable(val s0: Long, val s1: Long, val s2: Long, val s3: Long) {
         init {
             require((s0 or s1 or s2 or s3) != 0L) { XOSHIRO_BAD_STATE }
         }
 
-        internal constructor(initial: Xoshiro256State) : this(initial.s0, initial.s1, initial.s2, initial.s3)
+        internal constructor(
+            initial: Xoshiro256State
+        ) : this(initial.s0, initial.s1, initial.s2, initial.s3)
 
-        /**
-         * Creates an immutable generator by expanding [seed] with SplitMix-style seeding.
-         */
+        /** Creates an immutable generator by expanding [seed] with SplitMix-style seeding. */
         constructor(seed: Long) : this(seedXoshiroState(seed))
 
-        /**
-         * Returns the next 64-bit xoshiro256++ output and the advanced state.
-         */
+        /** Returns the next 64-bit xoshiro256++ output and the advanced state. */
         fun next64(): RandomResult<Immutable, Long> =
             RandomResult(
                 xoshiro256PlusPlusOutput(s0, s3),
                 Immutable(advanceXoshiroState(s0, s1, s2, s3)),
             )
 
-        /**
-         * Returns the high 32 bits of the next output and the advanced state.
-         */
+        /** Returns the high 32 bits of the next output and the advanced state. */
         fun next32(): RandomResult<Immutable, Int> {
             val step = next64()
             return RandomResult((step.value ushr 32).toInt(), step.generator)
         }
 
-        /**
-         * Returns the state advanced by the standard xoshiro256 jump polynomial.
-         */
+        /** Returns the state advanced by the standard xoshiro256 jump polynomial. */
         fun jump(): Immutable = Immutable(jumpXoshiroState(s0, s1, s2, s3, XOSHIRO256_JUMP))
 
-        /**
-         * Returns the state advanced by the standard xoshiro256 long-jump polynomial.
-         */
-        fun longJump(): Immutable = Immutable(jumpXoshiroState(s0, s1, s2, s3, XOSHIRO256_LONG_JUMP))
+        /** Returns the state advanced by the standard xoshiro256 long-jump polynomial. */
+        fun longJump(): Immutable =
+            Immutable(jumpXoshiroState(s0, s1, s2, s3, XOSHIRO256_LONG_JUMP))
 
-        /**
-         * Converts this immutable snapshot to a mutable generator with the same state.
-         */
+        /** Converts this immutable snapshot to a mutable generator with the same state. */
         fun asMutable(): Xoshiro256PlusPlusRandom = Xoshiro256PlusPlusRandom(s0, s1, s2, s3)
 
         private fun state(): Xoshiro256State = Xoshiro256State(s0, s1, s2, s3)
 
-        /**
-         * Compares immutable generator state, not object identity.
-         */
+        /** Compares immutable generator state, not object identity. */
         override fun equals(other: Any?): Boolean = other is Immutable && state() == other.state()
 
-        /**
-         * Returns a hash code derived from the immutable state.
-         */
+        /** Returns a hash code derived from the immutable state. */
         override fun hashCode(): Int = state().hashCode()
     }
 
-    /**
-     * Constructors for mutable xoshiro256++ generators.
-     */
+    /** Constructors for mutable xoshiro256++ generators. */
     companion object {
-        /**
-         * Creates a generator by expanding [seed] with SplitMix-style seeding.
-         */
+        /** Creates a generator by expanding [seed] with SplitMix-style seeding. */
         fun seed(seed: Long): Xoshiro256PlusPlusRandom = Xoshiro256PlusPlusRandom(seed)
     }
 }
@@ -200,12 +172,15 @@ class Xoshiro256StarStarRandom private constructor(initial: Xoshiro256State) : R
     /** First 64-bit state word. */
     var s0: Long = initial.s0
         private set
+
     /** Second 64-bit state word. */
     var s1: Long = initial.s1
         private set
+
     /** Third 64-bit state word. */
     var s2: Long = initial.s2
         private set
+
     /** Fourth 64-bit state word. */
     var s3: Long = initial.s3
         private set
@@ -215,11 +190,14 @@ class Xoshiro256StarStarRandom private constructor(initial: Xoshiro256State) : R
      *
      * The all-zero state is rejected.
      */
-    constructor(s0: Long, s1: Long, s2: Long, s3: Long) : this(normalizeXoshiroState(s0, s1, s2, s3))
+    constructor(
+        s0: Long,
+        s1: Long,
+        s2: Long,
+        s3: Long,
+    ) : this(normalizeXoshiroState(s0, s1, s2, s3))
 
-    /**
-     * Creates a generator by expanding [seed] with SplitMix-style seeding.
-     */
+    /** Creates a generator by expanding [seed] with SplitMix-style seeding. */
     constructor(seed: Long) : this(seedXoshiroState(seed))
 
     override fun nextBits(bitCount: Int): Int = randomBitsFromInt(next32(), bitCount)
@@ -237,9 +215,7 @@ class Xoshiro256StarStarRandom private constructor(initial: Xoshiro256State) : R
     override fun nextBytes(array: ByteArray, fromIndex: Int, toIndex: Int): ByteArray =
         fillBytesFromLongs(array, fromIndex, toIndex, ::next64)
 
-    /**
-     * Returns the next 64-bit xoshiro256** output and advances this generator.
-     */
+    /** Returns the next 64-bit xoshiro256** output and advances this generator. */
     fun next64(): Long {
         val result = xoshiro256StarStarOutput(s1)
         stepXoshiroState(s0, s1, s2, s3) { nextS0, nextS1, nextS2, nextS3 ->
@@ -251,28 +227,20 @@ class Xoshiro256StarStarRandom private constructor(initial: Xoshiro256State) : R
         return result
     }
 
-    /**
-     * Returns the high 32 bits of the next 64-bit output and advances this generator.
-     */
+    /** Returns the high 32 bits of the next 64-bit output and advances this generator. */
     fun next32(): Int = (next64() ushr 32).toInt()
 
-    /**
-     * Advances this generator by the standard xoshiro256 jump polynomial.
-     */
+    /** Advances this generator by the standard xoshiro256 jump polynomial. */
     fun jump() {
         assignState(jumpXoshiroState(s0, s1, s2, s3, XOSHIRO256_JUMP))
     }
 
-    /**
-     * Advances this generator by the standard xoshiro256 long-jump polynomial.
-     */
+    /** Advances this generator by the standard xoshiro256 long-jump polynomial. */
     fun longJump() {
         assignState(jumpXoshiroState(s0, s1, s2, s3, XOSHIRO256_LONG_JUMP))
     }
 
-    /**
-     * Captures this mutable generator as a serializable immutable snapshot.
-     */
+    /** Captures this mutable generator as a serializable immutable snapshot. */
     fun asImmutable(): Immutable = Immutable(s0, s1, s2, s3)
 
     private fun assignState(next: Xoshiro256State) {
@@ -284,15 +252,11 @@ class Xoshiro256StarStarRandom private constructor(initial: Xoshiro256State) : R
 
     private fun currentState(): Xoshiro256State = Xoshiro256State(s0, s1, s2, s3)
 
-    /**
-     * Compares generator state, not object identity.
-     */
+    /** Compares generator state, not object identity. */
     override fun equals(other: Any?): Boolean =
         other is Xoshiro256StarStarRandom && currentState() == other.currentState()
 
-    /**
-     * Returns a hash code derived from the current generator state.
-     */
+    /** Returns a hash code derived from the current generator state. */
     override fun hashCode(): Int = currentState().hashCode()
 
     /**
@@ -304,85 +268,58 @@ class Xoshiro256StarStarRandom private constructor(initial: Xoshiro256State) : R
      * @property s3 fourth 64-bit state word.
      */
     @Serializable
-    class Immutable(
-        val s0: Long,
-        val s1: Long,
-        val s2: Long,
-        val s3: Long,
-    ) {
+    class Immutable(val s0: Long, val s1: Long, val s2: Long, val s3: Long) {
         init {
             require((s0 or s1 or s2 or s3) != 0L) { XOSHIRO_BAD_STATE }
         }
 
-        internal constructor(initial: Xoshiro256State) : this(initial.s0, initial.s1, initial.s2, initial.s3)
+        internal constructor(
+            initial: Xoshiro256State
+        ) : this(initial.s0, initial.s1, initial.s2, initial.s3)
 
-        /**
-         * Creates an immutable generator by expanding [seed] with SplitMix-style seeding.
-         */
+        /** Creates an immutable generator by expanding [seed] with SplitMix-style seeding. */
         constructor(seed: Long) : this(seedXoshiroState(seed))
 
-        /**
-         * Returns the next 64-bit xoshiro256** output and the advanced state.
-         */
+        /** Returns the next 64-bit xoshiro256** output and the advanced state. */
         fun next64(): RandomResult<Immutable, Long> =
             RandomResult(
                 xoshiro256StarStarOutput(s1),
                 Immutable(advanceXoshiroState(s0, s1, s2, s3)),
             )
 
-        /**
-         * Returns the high 32 bits of the next output and the advanced state.
-         */
+        /** Returns the high 32 bits of the next output and the advanced state. */
         fun next32(): RandomResult<Immutable, Int> {
             val step = next64()
             return RandomResult((step.value ushr 32).toInt(), step.generator)
         }
 
-        /**
-         * Returns the state advanced by the standard xoshiro256 jump polynomial.
-         */
+        /** Returns the state advanced by the standard xoshiro256 jump polynomial. */
         fun jump(): Immutable = Immutable(jumpXoshiroState(s0, s1, s2, s3, XOSHIRO256_JUMP))
 
-        /**
-         * Returns the state advanced by the standard xoshiro256 long-jump polynomial.
-         */
-        fun longJump(): Immutable = Immutable(jumpXoshiroState(s0, s1, s2, s3, XOSHIRO256_LONG_JUMP))
+        /** Returns the state advanced by the standard xoshiro256 long-jump polynomial. */
+        fun longJump(): Immutable =
+            Immutable(jumpXoshiroState(s0, s1, s2, s3, XOSHIRO256_LONG_JUMP))
 
-        /**
-         * Converts this immutable snapshot to a mutable generator with the same state.
-         */
+        /** Converts this immutable snapshot to a mutable generator with the same state. */
         fun asMutable(): Xoshiro256StarStarRandom = Xoshiro256StarStarRandom(s0, s1, s2, s3)
 
         private fun state(): Xoshiro256State = Xoshiro256State(s0, s1, s2, s3)
 
-        /**
-         * Compares immutable generator state, not object identity.
-         */
+        /** Compares immutable generator state, not object identity. */
         override fun equals(other: Any?): Boolean = other is Immutable && state() == other.state()
 
-        /**
-         * Returns a hash code derived from the immutable state.
-         */
+        /** Returns a hash code derived from the immutable state. */
         override fun hashCode(): Int = state().hashCode()
     }
 
-    /**
-     * Constructors for mutable xoshiro256** generators.
-     */
+    /** Constructors for mutable xoshiro256** generators. */
     companion object {
-        /**
-         * Creates a generator by expanding [seed] with SplitMix-style seeding.
-         */
+        /** Creates a generator by expanding [seed] with SplitMix-style seeding. */
         fun seed(seed: Long): Xoshiro256StarStarRandom = Xoshiro256StarStarRandom(seed)
     }
 }
 
-internal data class Xoshiro256State(
-    val s0: Long,
-    val s1: Long,
-    val s2: Long,
-    val s3: Long,
-)
+internal data class Xoshiro256State(val s0: Long, val s1: Long, val s2: Long, val s3: Long)
 
 private const val XOSHIRO_BAD_STATE = "xoshiro256 state must not be all zero"
 private val XOSHIRO256_JUMP =
@@ -409,12 +346,8 @@ private fun advanceXoshiroState(state: Xoshiro256State): Xoshiro256State {
     return advanceXoshiroState(state.s0, state.s1, state.s2, state.s3)
 }
 
-private fun advanceXoshiroState(
-    s0: Long,
-    s1: Long,
-    s2: Long,
-    s3: Long,
-): Xoshiro256State = stepXoshiroState(s0, s1, s2, s3, ::Xoshiro256State)
+private fun advanceXoshiroState(s0: Long, s1: Long, s2: Long, s3: Long): Xoshiro256State =
+    stepXoshiroState(s0, s1, s2, s3, ::Xoshiro256State)
 
 private fun jumpXoshiroState(state: Xoshiro256State, polynomial: LongArray): Xoshiro256State =
     jumpXoshiroState(state.s0, state.s1, state.s2, state.s3, polynomial)
@@ -446,11 +379,10 @@ private fun jumpXoshiroState(
             }
 
             stepXoshiroState(currentS0, currentS1, currentS2, currentS3) {
-                    nextS0,
-                    nextS1,
-                    nextS2,
-                    nextS3,
-                ->
+                nextS0,
+                nextS1,
+                nextS2,
+                nextS3 ->
                 currentS0 = nextS0
                 currentS1 = nextS1
                 currentS2 = nextS2
@@ -476,23 +408,16 @@ private fun seedXoshiroState(seed: Long): Xoshiro256State {
 
     while (true) {
         val candidate =
-            Xoshiro256State(
-                nextSplitMix(),
-                nextSplitMix(),
-                nextSplitMix(),
-                nextSplitMix(),
-            )
+            Xoshiro256State(nextSplitMix(), nextSplitMix(), nextSplitMix(), nextSplitMix())
         if ((candidate.s0 or candidate.s1 or candidate.s2 or candidate.s3) != 0L) {
             return candidate
         }
     }
 }
 
-private fun xoshiro256PlusPlusOutput(s0: Long, s3: Long): Long =
-    rotateLeft64(s0 + s3, 23) + s0
+private fun xoshiro256PlusPlusOutput(s0: Long, s3: Long): Long = rotateLeft64(s0 + s3, 23) + s0
 
-private fun xoshiro256StarStarOutput(s1: Long): Long =
-    rotateLeft64(s1 * 5L, 7) * 9L
+private fun xoshiro256StarStarOutput(s1: Long): Long = rotateLeft64(s1 * 5L, 7) * 9L
 
 private inline fun <T> stepXoshiroState(
     s0: Long,

@@ -1,18 +1,20 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 package one.wabbit.random
 
-import kotlinx.serialization.Serializable
 import kotlin.random.Random
+import kotlinx.serialization.Serializable
 
 /**
  * Mutable Threefry 2x32 generator with JAX-style key derivation helpers.
  *
- * The sequential generator hashes the current 64-bit counter into a 2x32 block and then
- * increments it by one block. `next64()` is block-atomic: it discards a partially consumed
- * 32-bit buffer so the returned value always comes from a single counter. `split` and `foldIn`
- * operate on the key only, matching JAX's functional PRNG model. Full restore constructors that
- * include buffered words are internal; use `asImmutable()` / `asMutable()` to round-trip those
- * opaque snapshots. The higher-level `Random` primitives follow the same alignment rules, so
- * `nextDouble()` and `nextBytes(...)` are also block-atomic.
+ * The sequential generator hashes the current 64-bit counter into a 2x32 block and then increments
+ * it by one block. `next64()` is block-atomic: it discards a partially consumed 32-bit buffer so
+ * the returned value always comes from a single counter. `split` and `foldIn` operate on the key
+ * only, matching JAX's functional PRNG model. Full restore constructors that include buffered words
+ * are internal; use `asImmutable()` / `asMutable()` to round-trip those opaque snapshots. The
+ * higher-level `Random` primitives follow the same alignment rules, so `nextDouble()` and
+ * `nextBytes(...)` are also block-atomic.
  */
 class ThreefryRandom private constructor(initial: ThreefryState) : Random() {
     /** First 32-bit Threefry key word. */
@@ -27,9 +29,7 @@ class ThreefryRandom private constructor(initial: ThreefryState) : Random() {
     private var block1: Int = initial.block1
     private var blockIndex: Int = initial.blockIndex
 
-    /**
-     * Creates a mutable generator from explicit key words and block counter.
-     */
+    /** Creates a mutable generator from explicit key words and block counter. */
     constructor(
         key0: Int,
         key1: Int,
@@ -45,9 +45,7 @@ class ThreefryRandom private constructor(initial: ThreefryState) : Random() {
         blockIndex: Int,
     ) : this(validateState(ThreefryState(key0, key1, counter, block0, block1, blockIndex)))
 
-    /**
-     * Creates a mutable generator by splitting [seed] into two 32-bit key words.
-     */
+    /** Creates a mutable generator by splitting [seed] into two 32-bit key words. */
     constructor(seed: Long) : this(seedToKey0(seed), seedToKey1(seed), 0L)
 
     override fun nextBits(bitCount: Int): Int = randomBitsFromInt(next32(), bitCount)
@@ -65,9 +63,7 @@ class ThreefryRandom private constructor(initial: ThreefryState) : Random() {
     override fun nextBytes(array: ByteArray, fromIndex: Int, toIndex: Int): ByteArray =
         fillBytesFromLongs(array, fromIndex, toIndex, ::next64)
 
-    /**
-     * Returns the next 32-bit word and advances the buffered Threefry stream.
-     */
+    /** Returns the next 32-bit word and advances the buffered Threefry stream. */
     fun next32(): Int {
         if (blockIndex == WORDS_PER_BLOCK) {
             refill()
@@ -109,9 +105,7 @@ class ThreefryRandom private constructor(initial: ThreefryState) : Random() {
         }
     }
 
-    /**
-     * Returns the next 2x32 Threefry block. Any buffered 32-bit values are discarded.
-     */
+    /** Returns the next 2x32 Threefry block. Any buffered 32-bit values are discarded. */
     fun nextBlock(): IntArray {
         return hashCounterWords(key0, key1, counter) { left, right ->
             counter += 1L
@@ -131,32 +125,22 @@ class ThreefryRandom private constructor(initial: ThreefryState) : Random() {
         require(count >= 0) { BAD_SPLIT }
 
         return List(count) { index ->
-            hashWords(key0, key1, 0, index) { left, right ->
-                ThreefryRandom(left, right)
-            }
+            hashWords(key0, key1, 0, index) { left, right -> ThreefryRandom(left, right) }
         }
     }
 
-    /**
-     * Derives two child generators from this generator's key.
-     */
+    /** Derives two child generators from this generator's key. */
     fun split2(): Pair<ThreefryRandom, ThreefryRandom> {
         val children = split(2)
         return children[0] to children[1]
     }
 
-    /**
-     * Derives a generator by folding [data] into this generator's key.
-     */
+    /** Derives a generator by folding [data] into this generator's key. */
     fun foldIn(data: Int): ThreefryRandom {
-        return hashWords(key0, key1, 0, data) { left, right ->
-            ThreefryRandom(left, right)
-        }
+        return hashWords(key0, key1, 0, data) { left, right -> ThreefryRandom(left, right) }
     }
 
-    /**
-     * Captures this mutable generator as a serializable immutable snapshot.
-     */
+    /** Captures this mutable generator as a serializable immutable snapshot. */
     fun asImmutable(): Immutable = Immutable(key0, key1, counter, block0, block1, blockIndex)
 
     private fun currentState(): ThreefryState =
@@ -169,14 +153,11 @@ class ThreefryRandom private constructor(initial: ThreefryState) : Random() {
             blockIndex = blockIndex,
         )
 
-    /**
-     * Compares full generator state, including buffered words.
-     */
-    override fun equals(other: Any?): Boolean = other is ThreefryRandom && currentState() == other.currentState()
+    /** Compares full generator state, including buffered words. */
+    override fun equals(other: Any?): Boolean =
+        other is ThreefryRandom && currentState() == other.currentState()
 
-    /**
-     * Returns a hash code derived from the full generator state.
-     */
+    /** Returns a hash code derived from the full generator state. */
     override fun hashCode(): Int = currentState().hashCode()
 
     private fun refill() {
@@ -205,7 +186,8 @@ class ThreefryRandom private constructor(initial: ThreefryState) : Random() {
      * @property blockIndex index of the next buffered word.
      */
     @Serializable
-    class Immutable internal constructor(
+    class Immutable
+    internal constructor(
         val key0: Int,
         val key1: Int,
         val counter: Long,
@@ -217,9 +199,7 @@ class ThreefryRandom private constructor(initial: ThreefryState) : Random() {
             validateBlockIndex(blockIndex)
         }
 
-        /**
-         * Creates an immutable generator from explicit key words and block counter.
-         */
+        /** Creates an immutable generator from explicit key words and block counter. */
         constructor(
             key0: Int,
             key1: Int,
@@ -233,7 +213,9 @@ class ThreefryRandom private constructor(initial: ThreefryState) : Random() {
             blockIndex = WORDS_PER_BLOCK,
         )
 
-        internal constructor(initial: ThreefryState) : this(
+        internal constructor(
+            initial: ThreefryState
+        ) : this(
             key0 = initial.key0,
             key1 = initial.key1,
             counter = initial.counter,
@@ -242,17 +224,14 @@ class ThreefryRandom private constructor(initial: ThreefryState) : Random() {
             blockIndex = initial.blockIndex,
         )
 
-        /**
-         * Creates an immutable generator by splitting [seed] into two 32-bit key words.
-         */
+        /** Creates an immutable generator by splitting [seed] into two 32-bit key words. */
         constructor(seed: Long) : this(seedToKey0(seed), seedToKey1(seed), 0L)
 
-        /**
-         * Returns the next 32-bit word and the advanced immutable state.
-         */
+        /** Returns the next 32-bit word and the advanced immutable state. */
         fun next32(): RandomResult<Immutable, Int> {
             return when (blockIndex) {
-                0, 1 -> {
+                0,
+                1 -> {
                     val value = bufferedWordAt(blockIndex, block0, block1)
                     RandomResult(value, copy(blockIndex = blockIndex + 1))
                 }
@@ -272,9 +251,7 @@ class ThreefryRandom private constructor(initial: ThreefryState) : Random() {
             }
         }
 
-        /**
-         * Returns the next block-atomic 64-bit value and the advanced immutable state.
-         */
+        /** Returns the next block-atomic 64-bit value and the advanced immutable state. */
         fun next64(): RandomResult<Immutable, Long> {
             return when (blockIndex) {
                 0 ->
@@ -282,7 +259,8 @@ class ThreefryRandom private constructor(initial: ThreefryState) : Random() {
                         combineToLong(block0, block1),
                         copy(block0 = 0, block1 = 0, blockIndex = WORDS_PER_BLOCK),
                     )
-                1, WORDS_PER_BLOCK -> {
+                1,
+                WORDS_PER_BLOCK -> {
                     val aligned =
                         if (blockIndex == 1) {
                             copy(block0 = 0, block1 = 0, blockIndex = WORDS_PER_BLOCK)
@@ -332,33 +310,24 @@ class ThreefryRandom private constructor(initial: ThreefryState) : Random() {
             require(count >= 0) { BAD_SPLIT }
 
             return List(count) { index ->
-                hashWords(key0, key1, 0, index) { left, right ->
-                    Immutable(left, right)
-                }
+                hashWords(key0, key1, 0, index) { left, right -> Immutable(left, right) }
             }
         }
 
-        /**
-         * Derives two child immutable generators from this generator's key.
-         */
+        /** Derives two child immutable generators from this generator's key. */
         fun split2(): Pair<Immutable, Immutable> {
             val children = split(2)
             return children[0] to children[1]
         }
 
-        /**
-         * Derives an immutable generator by folding [data] into this generator's key.
-         */
+        /** Derives an immutable generator by folding [data] into this generator's key. */
         fun foldIn(data: Int): Immutable {
-            return hashWords(key0, key1, 0, data) { left, right ->
-                Immutable(left, right)
-            }
+            return hashWords(key0, key1, 0, data) { left, right -> Immutable(left, right) }
         }
 
-        /**
-         * Converts this immutable snapshot to a mutable generator with the same full state.
-         */
-        fun asMutable(): ThreefryRandom = ThreefryRandom(key0, key1, counter, block0, block1, blockIndex)
+        /** Converts this immutable snapshot to a mutable generator with the same full state. */
+        fun asMutable(): ThreefryRandom =
+            ThreefryRandom(key0, key1, counter, block0, block1, blockIndex)
 
         private fun state(): ThreefryState =
             ThreefryState(
@@ -370,14 +339,10 @@ class ThreefryRandom private constructor(initial: ThreefryState) : Random() {
                 blockIndex = blockIndex,
             )
 
-        /**
-         * Compares full immutable state, including buffered words.
-         */
+        /** Compares full immutable state, including buffered words. */
         override fun equals(other: Any?): Boolean = other is Immutable && state() == other.state()
 
-        /**
-         * Returns a hash code derived from the full immutable state.
-         */
+        /** Returns a hash code derived from the full immutable state. */
         override fun hashCode(): Int = state().hashCode()
 
         private fun copy(
@@ -390,9 +355,7 @@ class ThreefryRandom private constructor(initial: ThreefryState) : Random() {
         ): Immutable = Immutable(key0, key1, counter, block0, block1, blockIndex)
     }
 
-    /**
-     * Raw Threefry hashing and construction helpers.
-     */
+    /** Raw Threefry hashing and construction helpers. */
     companion object {
         private const val WORDS_PER_BLOCK = 2
         private const val BAD_SPLIT = "split count must be non-negative"
@@ -408,9 +371,7 @@ class ThreefryRandom private constructor(initial: ThreefryState) : Random() {
          * @return the two 32-bit words produced for the supplied key and counter.
          */
         fun hash(key0: Int, key1: Int, count0: Int, count1: Int): IntArray =
-            hashWords(key0, key1, count0, count1) { left, right ->
-                intArrayOf(left, right)
-            }
+            hashWords(key0, key1, count0, count1) { left, right -> intArrayOf(left, right) }
 
         // Keep the Threefry mix schedule in locals so block hashing stays allocation-free.
         private inline fun <T> hashWords(
@@ -463,9 +424,7 @@ class ThreefryRandom private constructor(initial: ThreefryState) : Random() {
             return consume(x0, x1)
         }
 
-        /**
-         * Creates a mutable generator by splitting [seed] into two 32-bit key words.
-         */
+        /** Creates a mutable generator by splitting [seed] into two 32-bit key words. */
         fun seed(seed: Long): ThreefryRandom = ThreefryRandom(seed)
 
         private fun validateState(state: ThreefryState): ThreefryState {

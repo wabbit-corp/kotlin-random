@@ -1,10 +1,12 @@
+// SPDX-License-Identifier: LicenseRef-Wabbit-Public-Test-License-1.1
+
 package one.wabbit.random
 
-import kotlinx.serialization.json.Json
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlinx.serialization.json.Json
 
 class RandomSerializationSpec {
     private val json = Json { encodeDefaults = true }
@@ -29,7 +31,8 @@ class RandomSerializationSpec {
 
     @Test
     fun philox_snapshot_round_trips_with_buffered_state() {
-        val original = PhiloxRandom.Immutable(key0 = 0x1234, key1 = 0x5678, counter0 = 1L).next32().generator
+        val original =
+            PhiloxRandom.Immutable(key0 = 0x1234, key1 = 0x5678, counter0 = 1L).next32().generator
         val restored = roundTrip(original)
 
         assertEquals(original, restored)

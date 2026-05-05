@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-Wabbit-Public-Test-License-1.1
+
 package one.wabbit.random
 
 import java.util.random.RandomGenerator
@@ -14,9 +16,7 @@ class L64X128RandomJvmSpec {
         for (seed in seeds) {
             val jdk = jdkFromLong(seed)
             val ours = L64X128Random(seed)
-            repeat(256) {
-                assertEquals(jdk.nextLong(), ours.next64(), "seed=$seed")
-            }
+            repeat(256) { assertEquals(jdk.nextLong(), ours.next64(), "seed=$seed") }
         }
     }
 
@@ -44,9 +44,7 @@ class L64X128RandomJvmSpec {
         val jdk = jdkFromLong(0x1000)
         val ours = L64X128Random(0x1000)
 
-        repeat(256) {
-            assertEquals(jdk.nextInt(), ours.next32())
-        }
+        repeat(256) { assertEquals(jdk.nextInt(), ours.next32()) }
     }
 
     @Test
@@ -54,9 +52,7 @@ class L64X128RandomJvmSpec {
         val jdk = jdkFromLong(0x1000)
         val ours = L64X128Random(0x1000)
 
-        repeat(256) {
-            assertEquals(jdk.nextFloat(), ours.nextFloat())
-        }
+        repeat(256) { assertEquals(jdk.nextFloat(), ours.nextFloat()) }
     }
 
     @Test
@@ -64,9 +60,7 @@ class L64X128RandomJvmSpec {
         val jdk = jdkFromLong(0x1000)
         val ours = L64X128Random(0x1000)
 
-        repeat(256) {
-            assertEquals(jdk.nextDouble(), ours.nextDouble())
-        }
+        repeat(256) { assertEquals(jdk.nextDouble(), ours.nextDouble()) }
     }
 
     @Test
@@ -90,9 +84,7 @@ class L64X128RandomJvmSpec {
         for (bound in bounds) {
             val jdk = jdkFromLong(0x1000)
             val ours = L64X128Random(0x1000)
-            repeat(256) {
-                assertEquals(jdk.nextLong(bound), ours.next64(bound), "bound=$bound")
-            }
+            repeat(256) { assertEquals(jdk.nextLong(bound), ours.next64(bound), "bound=$bound") }
         }
     }
 
@@ -108,8 +100,16 @@ class L64X128RandomJvmSpec {
             val oursRange = L64X128Random(0x1000)
 
             repeat(256) {
-                assertEquals(jdkUntil.nextInt(bound), oursUntil.nextInt(bound), "nextInt(bound), bound=$bound")
-                assertEquals(jdkRange.nextInt(0, bound), oursRange.nextInt(0, bound), "nextInt(range), bound=$bound")
+                assertEquals(
+                    jdkUntil.nextInt(bound),
+                    oursUntil.nextInt(bound),
+                    "nextInt(bound), bound=$bound",
+                )
+                assertEquals(
+                    jdkRange.nextInt(0, bound),
+                    oursRange.nextInt(0, bound),
+                    "nextInt(range), bound=$bound",
+                )
             }
         }
 
@@ -120,8 +120,16 @@ class L64X128RandomJvmSpec {
             val oursRange = L64X128Random(0x1000)
 
             repeat(256) {
-                assertEquals(jdkUntil.nextLong(bound), oursUntil.nextLong(bound), "nextLong(bound), bound=$bound")
-                assertEquals(jdkRange.nextLong(0L, bound), oursRange.nextLong(0L, bound), "nextLong(range), bound=$bound")
+                assertEquals(
+                    jdkUntil.nextLong(bound),
+                    oursUntil.nextLong(bound),
+                    "nextLong(bound), bound=$bound",
+                )
+                assertEquals(
+                    jdkRange.nextLong(0L, bound),
+                    oursRange.nextLong(0L, bound),
+                    "nextLong(range), bound=$bound",
+                )
             }
         }
     }
@@ -142,7 +150,10 @@ class L64X128RandomJvmSpec {
         val jdkLong = jdkFromLong(0x1000)
         val oursLong = L64X128Random(0x1000)
         repeat(256) {
-            assertEquals(jdkLong.nextLong(longFrom, longUntil), oursLong.nextLong(longFrom, longUntil))
+            assertEquals(
+                jdkLong.nextLong(longFrom, longUntil),
+                oursLong.nextLong(longFrom, longUntil),
+            )
         }
     }
 
@@ -231,13 +242,19 @@ class L64X128RandomJvmSpec {
         override fun split(): RandomGenerator.SplittableGenerator =
             throw UnsupportedOperationException("split() is not used in this test")
 
-        override fun split(source: RandomGenerator.SplittableGenerator): RandomGenerator.SplittableGenerator =
+        override fun split(
+            source: RandomGenerator.SplittableGenerator
+        ): RandomGenerator.SplittableGenerator =
             throw UnsupportedOperationException("split(source) is not used in this test")
 
-        override fun splits(streamSize: Long): java.util.stream.Stream<RandomGenerator.SplittableGenerator> =
+        override fun splits(
+            streamSize: Long
+        ): java.util.stream.Stream<RandomGenerator.SplittableGenerator> =
             throw UnsupportedOperationException("splits(long) is not used in this test")
 
-        override fun splits(source: RandomGenerator.SplittableGenerator): java.util.stream.Stream<RandomGenerator.SplittableGenerator> =
+        override fun splits(
+            source: RandomGenerator.SplittableGenerator
+        ): java.util.stream.Stream<RandomGenerator.SplittableGenerator> =
             throw UnsupportedOperationException("splits(source) is not used in this test")
 
         override fun splits(

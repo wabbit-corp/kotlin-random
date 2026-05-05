@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 package one.wabbit.random
 
 private const val BAD_BIT_COUNT = "bitCount must be in 0..32"

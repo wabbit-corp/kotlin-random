@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-Wabbit-Public-Test-License-1.1
+
 package one.wabbit.random
 
 import kotlin.random.Random
@@ -124,12 +126,8 @@ class RandomInheritanceSpec {
             )
 
         for (generator in generators) {
-            assertFailsWith<IllegalArgumentException> {
-                generator.nextBits(-1)
-            }
-            assertFailsWith<IllegalArgumentException> {
-                generator.nextBits(33)
-            }
+            assertFailsWith<IllegalArgumentException> { generator.nextBits(-1) }
+            assertFailsWith<IllegalArgumentException> { generator.nextBits(33) }
         }
     }
 
@@ -141,8 +139,14 @@ class RandomInheritanceSpec {
             advance = { it.next32() },
         )
         assertMutableEquality(create = { ThreefryRandom(0x1234) }, advance = { it.next32() })
-        assertMutableEquality(create = { Xoshiro256PlusPlusRandom(0x1234) }, advance = { it.next64() })
-        assertMutableEquality(create = { Xoshiro256StarStarRandom(0x1234) }, advance = { it.next64() })
+        assertMutableEquality(
+            create = { Xoshiro256PlusPlusRandom(0x1234) },
+            advance = { it.next64() },
+        )
+        assertMutableEquality(
+            create = { Xoshiro256StarStarRandom(0x1234) },
+            advance = { it.next64() },
+        )
     }
 
     @Test
@@ -202,11 +206,7 @@ class RandomInheritanceSpec {
         threefry.next32()
         assertEquals(threefry.asImmutable().asMutable(), threefry)
         assertNotEquals(
-            ThreefryRandom(
-                key0 = threefry.key0,
-                key1 = threefry.key1,
-                counter = threefry.counter,
-            ),
+            ThreefryRandom(key0 = threefry.key0, key1 = threefry.key1, counter = threefry.counter),
             threefry,
         )
         val threefrySnapshot = threefry.asImmutable()
@@ -227,15 +227,11 @@ class RandomInheritanceSpec {
     ) {
         val booleans = create()
         val booleansReference = create()
-        repeat(8) {
-            assertEquals(next32(booleansReference) < 0, booleans.nextBoolean())
-        }
+        repeat(8) { assertEquals(next32(booleansReference) < 0, booleans.nextBoolean()) }
 
         val floats = create()
         val floatsReference = create()
-        repeat(8) {
-            assertEquals(randomFloatFromInt(next32(floatsReference)), floats.nextFloat())
-        }
+        repeat(8) { assertEquals(randomFloatFromInt(next32(floatsReference)), floats.nextFloat()) }
 
         val doubles = create()
         val doublesReference = create()

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 package one.wabbit.random
 
 import kotlinx.serialization.Serializable
@@ -11,8 +13,4 @@ import kotlinx.serialization.Serializable
  * @property value the random value produced by the step.
  * @property generator the continuation generator state.
  */
-@Serializable
-data class RandomResult<Rng, Value>(
-    val value: Value,
-    val generator: Rng,
-)
+@Serializable data class RandomResult<Rng, Value>(val value: Value, val generator: Rng)

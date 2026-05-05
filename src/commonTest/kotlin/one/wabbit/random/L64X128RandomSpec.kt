@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-Wabbit-Public-Test-License-1.1
+
 package one.wabbit.random
 
 import kotlin.test.Test
@@ -55,8 +57,14 @@ class L64X128RandomSpec {
         var immutableParent = immutableFork.generator
         var immutableChild = immutableFork.value
 
-        assertContentEquals(forkParentNext64Vector, next64s(mutableParent, forkParentNext64Vector.size))
-        assertContentEquals(forkChildNext64Vector, next64s(mutableChild, forkChildNext64Vector.size))
+        assertContentEquals(
+            forkParentNext64Vector,
+            next64s(mutableParent, forkParentNext64Vector.size),
+        )
+        assertContentEquals(
+            forkChildNext64Vector,
+            next64s(mutableChild, forkChildNext64Vector.size),
+        )
 
         for (expected in forkParentNext64Vector) {
             val step = immutableParent.next64()
@@ -79,8 +87,14 @@ class L64X128RandomSpec {
         var immutableParent = immutableFork.generator
         var immutableChild = immutableFork.value
 
-        assertContentEquals(forkBrineParentNext64Vector, next64s(mutableParent, forkBrineParentNext64Vector.size))
-        assertContentEquals(forkBrineChildNext64Vector, next64s(mutableChild, forkBrineChildNext64Vector.size))
+        assertContentEquals(
+            forkBrineParentNext64Vector,
+            next64s(mutableParent, forkBrineParentNext64Vector.size),
+        )
+        assertContentEquals(
+            forkBrineChildNext64Vector,
+            next64s(mutableChild, forkBrineChildNext64Vector.size),
+        )
 
         for (expected in forkBrineParentNext64Vector) {
             val step = immutableParent.next64()
@@ -166,12 +180,8 @@ class L64X128RandomSpec {
     fun oversized_byte_seed_is_rejected() {
         val bytes = ByteArray(33) { it.toByte() }
 
-        assertFailsWith<IllegalArgumentException> {
-            L64X128Random.seed(bytes)
-        }
-        assertFailsWith<IllegalArgumentException> {
-            L64X128Random.Immutable.seed(bytes)
-        }
+        assertFailsWith<IllegalArgumentException> { L64X128Random.seed(bytes) }
+        assertFailsWith<IllegalArgumentException> { L64X128Random.Immutable.seed(bytes) }
     }
 
     @Test
